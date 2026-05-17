@@ -3,6 +3,8 @@ import Icon from './Icons.jsx'
 import { TaskWithSubs } from './TaskRow.jsx'
 import { formatTaskDate } from '../lib/utils.js'
 
+const FAB_PINK = '#FF2D55'
+
 export default function MainView({
   state, setState, filtered, tint,
   headerTitle, headerSub, smartView,
@@ -16,6 +18,11 @@ export default function MainView({
 
   function submitNew() {
     if (newTitle.trim()) addTask(newTitle.trim())
+    setNewTitle('')
+    setAdding(false)
+  }
+
+  function cancel() {
     setNewTitle('')
     setAdding(false)
   }
@@ -45,7 +52,25 @@ export default function MainView({
     return null
   }, [filtered, state.selected, state.lists])
 
-  const renderTaskGroup = (items, groupTint, groupList) => (
+  const addRow = (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '10px 14px', minHeight: 44,
+    }}>
+      <div style={{ width: 18, height: 18, borderRadius: 999, border: '1.6px solid var(--ink-4)', flex: '0 0 18px' }} />
+      <input
+        ref={newInputRef}
+        value={newTitle}
+        onChange={e => setNewTitle(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submitNew(); if (e.key === 'Escape') cancel() }}
+        onBlur={() => { if (newTitle.trim()) submitNew(); else cancel() }}
+        placeholder="New Reminder"
+        style={{ fontSize: 14, color: 'var(--ink)' }}
+      />
+    </div>
+  )
+
+  const renderTaskGroup = (items, groupTint, groupList, showAddRow) => (
     <div style={{ background: 'var(--surface)', borderRadius: 10, overflow: 'hidden' }}>
       {items.map((t, i) => (
         <TaskWithSubs
@@ -61,23 +86,9 @@ export default function MainView({
           isFirst={i === 0}
         />
       ))}
-      {adding && !groups && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 14px',
-          borderTop: items.length ? '0.5px solid var(--separator-2)' : 'none',
-          minHeight: 44,
-        }}>
-          <div style={{ width: 18, height: 18, borderRadius: 999, border: '1.6px solid var(--ink-4)', flex: '0 0 18px' }} />
-          <input
-            ref={newInputRef}
-            value={newTitle}
-            onChange={e => setNewTitle(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') submitNew(); if (e.key === 'Escape') setAdding(false) }}
-            onBlur={() => { if (newTitle.trim()) submitNew(); else setAdding(false) }}
-            placeholder="New Reminder"
-            style={{ fontSize: 14, color: 'var(--ink)' }}
-          />
+      {showAddRow && (
+        <div style={{ borderTop: items.length ? '0.5px solid var(--separator-2)' : 'none' }}>
+          {addRow}
         </div>
       )}
     </div>
@@ -116,63 +127,74 @@ export default function MainView({
 
       <div style={{ flex: 1, overflow: 'auto', padding: '8px 18px 90px' }}>
         {groups ? (
-          groups.map(([groupName, items, list], gi) => (
-            <div key={gi} style={{ marginBottom: 14 }}>
-              <div style={{
-                fontSize: 13, fontWeight: 600,
-                color: list ? list.color : 'var(--ink-2)',
-                padding: '6px 10px 6px',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {list && <span style={{ width: 8, height: 8, borderRadius: 999, background: list.color }} />}
-                {groupName}
+          <>
+            {groups.map(([groupName, items, list], gi) => (
+              <div key={gi} style={{ marginBottom: 14 }}>
+                <div style={{
+                  fontSize: 13, fontWeight: 600,
+                  color: list ? list.color : 'var(--ink-2)',
+                  padding: '6px 10px 6px',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  {list && <span style={{ width: 8, height: 8, borderRadius: 999, background: list.color }} />}
+                  {groupName}
+                </div>
+                {renderTaskGroup(items, list ? list.color : tint, list, false)}
               </div>
-              {renderTaskGroup(items, list ? list.color : tint, list)}
-            </div>
-          ))
+            ))}
+            {adding && (
+              <div style={{ background: 'var(--surface)', borderRadius: 10, overflow: 'hidden' }}>
+                {addRow}
+              </div>
+            )}
+          </>
         ) : filtered.length === 0 && !adding ? (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
             <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>No Reminders</div>
-            <div style={{ fontSize: 13 }}>Click below to add one.</div>
+            <div style={{ fontSize: 13 }}>Tap + to add one.</div>
           </div>
         ) : (
-          renderTaskGroup(filtered, tint, null)
+          renderTaskGroup(filtered, tint, null, adding)
         )}
-
-        {/* Empty grouped view needs an add row too */}
-        {groups && adding && (
+        {filtered.length === 0 && adding && !groups && (
           <div style={{ background: 'var(--surface)', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', minHeight: 44 }}>
-              <div style={{ width: 18, height: 18, borderRadius: 999, border: '1.6px solid var(--ink-4)', flex: '0 0 18px' }} />
-              <input
-                ref={groups ? newInputRef : null}
-                value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') submitNew(); if (e.key === 'Escape') setAdding(false) }}
-                onBlur={() => { if (newTitle.trim()) submitNew(); else setAdding(false) }}
-                placeholder="New Reminder"
-                style={{ fontSize: 14, color: 'var(--ink)' }}
-              />
-            </div>
+            {addRow}
           </div>
         )}
-
       </div>
 
-      {!adding && (
+      {/* FAB */}
+      <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
         <button
-          onClick={() => setAdding(true)}
+          className="r-fab"
+          onMouseDown={e => { if (adding) e.preventDefault() }}
+          onClick={() => adding ? cancel() : setAdding(true)}
           style={{
-            position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
-            width: 56, height: 56, borderRadius: 999,
-            background: 'var(--tint)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: adding ? FAB_PINK : 'var(--tint)',
             boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+            transition: 'background .2s ease, transform .15s ease, box-shadow .15s ease',
           }}
         >
-          <Icon name="plus" size={24} color="white" stroke={2.5} />
+          <div style={{
+            position: 'absolute',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: adding ? 0 : 1,
+            transform: adding ? 'rotate(45deg) scale(0.7)' : 'rotate(0deg) scale(1)',
+            transition: 'opacity .18s ease, transform .18s ease',
+          }}>
+            <Icon name="plus" size={24} color="white" stroke={2.5} />
+          </div>
+          <div style={{
+            position: 'absolute',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: adding ? 1 : 0,
+            transform: adding ? 'rotate(0deg) scale(1)' : 'rotate(-45deg) scale(0.7)',
+            transition: 'opacity .18s ease, transform .18s ease',
+          }}>
+            <Icon name="x" size={22} color="white" stroke={2.5} />
+          </div>
         </button>
-      )}
+      </div>
     </main>
   )
 }

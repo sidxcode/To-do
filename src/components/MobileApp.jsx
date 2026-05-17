@@ -3,6 +3,8 @@ import Icon from './Icons.jsx'
 import { SMART_VIEWS, formatTaskDate, isOverdue } from '../lib/utils.js'
 import { Toggle, DateChips, TimeChips, PriorityChips, Picker, SubtasksEditor } from './DetailPopover.jsx'
 
+const FAB_PINK = '#FF2D55'
+
 // ── Home tile ────────────────────────────────────────────────────────────────
 const HomeTile = ({ tile, count, onClick }) => (
   <div onClick={onClick} className="r-tile" style={{
@@ -174,7 +176,7 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
                   ref={inputRef}
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') submitNew(); if (e.key === 'Escape') setAdding(false) }}
+                  onKeyDown={e => { if (e.key === 'Enter') submitNew(); if (e.key === 'Escape') { setNewTitle(''); setAdding(false) } }}
                   onBlur={() => { if (newTitle.trim()) submitNew(); else setAdding(false) }}
                   placeholder="New Reminder"
                   style={{ fontSize: 16, color: 'var(--ink)' }}
@@ -185,18 +187,38 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
         )}
       </div>
 
-      <button
-        onClick={() => setAdding(true)}
-        style={{
-          position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
-          width: 56, height: 56, borderRadius: 999,
-          background: tint,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 16px rgba(0,0,0,.18)',
-        }}
-      >
-        <Icon name="plus" size={24} color="white" stroke={2.5} />
-      </button>
+      {/* FAB */}
+      <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 35 }}>
+        <button
+          className="r-fab"
+          onMouseDown={e => { if (adding) e.preventDefault() }}
+          onClick={() => adding ? (setNewTitle(''), setAdding(false)) : setAdding(true)}
+          style={{
+            background: adding ? FAB_PINK : tint,
+            boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+            transition: 'background .2s ease, transform .15s ease, box-shadow .15s ease',
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: adding ? 0 : 1,
+            transform: adding ? 'rotate(45deg) scale(0.7)' : 'rotate(0deg) scale(1)',
+            transition: 'opacity .18s ease, transform .18s ease',
+          }}>
+            <Icon name="plus" size={24} color="white" stroke={2.5} />
+          </div>
+          <div style={{
+            position: 'absolute',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: adding ? 1 : 0,
+            transform: adding ? 'rotate(0deg) scale(1)' : 'rotate(-45deg) scale(0.7)',
+            transition: 'opacity .18s ease, transform .18s ease',
+          }}>
+            <Icon name="x" size={22} color="white" stroke={2.5} />
+          </div>
+        </button>
+      </div>
     </div>
   )
 }

@@ -1,155 +1,167 @@
-import { useMemo, useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Sidebar from './components/Sidebar.jsx'
-import TaskList from './components/TaskList.jsx'
-import AddTaskInput from './components/AddTaskInput.jsx'
-import './App.css'
+import MainView from './components/MainView.jsx'
+import DetailPopover from './components/DetailPopover.jsx'
+import MobileApp from './components/MobileApp.jsx'
+import { uid, todayISO, isTaskToday, SEED_LISTS, makeSeedTasks } from './lib/utils.js'
 
-// ------------------------------------------------------------------
-// Seed data so the app isn't empty on first load.
-// All of this gets replaced by Supabase in a later step.
-// ------------------------------------------------------------------
-const SEED_LISTS = [
-  { id: 'inbox', name: 'Inbox' },
-  { id: 'today', name: 'Today' },
-  { id: 'work', name: 'Work' },
-]
-
-const SEED_TASKS = [
-  {
-    id: crypto.randomUUID(),
-    listId: 'inbox',
-    title: 'Try adding your first task below',
-    done: false,
-    dueDate: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: crypto.randomUUID(),
-    listId: 'today',
-    title: 'Check off a task to see it complete',
-    done: false,
-    dueDate: new Date().toISOString().slice(0, 10),
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: crypto.randomUUID(),
-    listId: 'work',
-    title: 'Add a new list using the + button in the sidebar',
-    done: true,
-    dueDate: null,
-    createdAt: new Date().toISOString(),
-  },
-]
+const INITIAL_STATE = {
+  theme: 'light',
+  selected: { type: 'today' },
+  detailId: null,
+  showCompleted: false,
+  mobileScreen: 'home',
+  lists: SEED_LISTS,
+  tasks: makeSeedTasks(),
+}
 
 export default function App() {
-  const [lists, setLists] = useState(SEED_LISTS)
-  const [tasks, setTasks] = useState(SEED_TASKS)
-  const [activeListId, setActiveListId] = useState('inbox')
+  const [state, setState] = useState(INITIAL_STATE)
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 700px)').matches)
+  const [addTrigger, setAddTrigger] = useState(0)
 
-  // ---- Derived state -------------------------------------------------
-  const activeList = useMemo(
-    () => lists.find((l) => l.id === activeListId) ?? lists[0],
-    [lists, activeListId],
-  )
+  // Apply theme to html element
+  useEffect(() => {
+    document.documentElement.dataset.theme = state.theme
+  }, [state.theme])
 
-  const tasksForActiveList = useMemo(
-    () =>
-      tasks
-        .filter((t) => t.listId === activeListId)
-        // Incomplete first, then by creation time
-        .sort((a, b) => {
-          if (a.done !== b.done) return a.done ? 1 : -1
-          return a.createdAt.localeCompare(b.createdAt)
-        }),
-    [tasks, activeListId],
-  )
+  // Responsive breakpoint
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 700px)')
+    const handler = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
-  // ---- Mutations -----------------------------------------------------
-  function addTask({ title, dueDate }) {
-    const trimmed = title.trim()
-    if (!trimmed) return
-    setTasks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        listId: activeListId,
-        title: trimmed,
-        done: false,
-        dueDate: dueDate || null,
-        createdAt: new Date().toISOString(),
-      },
-    ])
+  // ── Derived counts ───────────────────────────────────────────────────
+  const counts = useMemo(() => {
+    const today = todayISO(0)
+    const inc = state.tasks.filter(t => !t.done)
+    return {
+      today: inc.filter(t => t.dueDate && t.dueDate <= today).length,
+      scheduled: inc.filter(t => t.dueDate).length,
+      all: inc.length,
+      flagged: inc.filter(t => t.flagged).length,
+      lists: Object.fromEntries(state.lists.map(l => [l.id, inc.filter(t => t.listId === l.id).length])),
+    }
+  }, [state.tasks, state.lists])
+
+  // ── Filtered tasks for current view ─────────────────────────────────
+  const filtered = useMemo(() => {
+    const { selected, tasks, showCompleted } = state
+    const show = (t) => !t.done || showCompleted
+    const today = todayISO(0)
+    switch (selected.type) {
+      case 'today':     return tasks.filter(t => show(t) && t.dueDate && t.dueDate <= today)
+      case 'scheduled': return tasks.filter(t => show(t) && t.dueDate)
+      case 'all':       return tasks.filter(show)
+      case 'flagged':   return tasks.filter(t => show(t) && t.flagged)
+      case 'completed': return tasks.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))
+      case 'list':      return tasks.filter(t => show(t) && t.listId === selected.id)
+      default:          return tasks
+    }
+  }, [state])
+
+  // ── Header info based on selection ──────────────────────────────────
+  const headerInfo = useMemo(() => {
+    const { selected } = state
+    const now = new Date()
+    switch (selected.type) {
+      case 'today':     return { title: 'Today', sub: now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }), tint: 'var(--c-blue)', smart: true }
+      case 'scheduled': return { title: 'Scheduled', sub: null, tint: 'var(--c-red)', smart: true }
+      case 'all':       return { title: 'All', sub: null, tint: 'var(--c-gray)', smart: true }
+      case 'flagged':   return { title: 'Flagged', sub: null, tint: 'var(--c-orange)', smart: true }
+      case 'completed': return { title: 'Completed', sub: null, tint: 'var(--c-gray)', smart: true }
+      case 'list': {
+        const l = state.lists.find(x => x.id === selected.id)
+        return { title: l?.name || '', sub: null, tint: l?.color || 'var(--c-blue)', smart: false }
+      }
+      default: return { title: '', sub: null, tint: 'var(--c-blue)', smart: false }
+    }
+  }, [state.selected, state.lists])
+
+  // Apply tint CSS variable
+  useEffect(() => {
+    document.documentElement.style.setProperty('--tint', headerInfo.tint)
+  }, [headerInfo.tint])
+
+  // ── Mutations ────────────────────────────────────────────────────────
+  function addTask(title) {
+    const { selected } = state
+    let dueDate = null
+    let listId = state.lists[0]?.id || null
+    let flagged = false
+    if (selected.type === 'today' || selected.type === 'scheduled') dueDate = todayISO(0)
+    if (selected.type === 'flagged') flagged = true
+    if (selected.type === 'list') listId = selected.id
+
+    setState(s => ({
+      ...s,
+      tasks: [...s.tasks, {
+        id: uid(), title, notes: '', done: false,
+        dueDate, dueTime: null, priority: 0, flagged,
+        listId, recurring: null, subtasks: [], createdAt: Date.now(),
+      }],
+    }))
   }
 
   function toggleTask(id) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-    )
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.map(t =>
+        t.id === id ? { ...t, done: !t.done, doneAt: !t.done ? Date.now() : null } : t
+      ),
+    }))
+  }
+
+  function updateTask(id, patch) {
+    setState(s => ({ ...s, tasks: s.tasks.map(t => t.id === id ? { ...t, ...patch } : t) }))
   }
 
   function deleteTask(id) {
-    setTasks((prev) => prev.filter((t) => t.id !== id))
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.filter(t => t.id !== id),
+      detailId: s.detailId === id ? null : s.detailId,
+    }))
   }
 
-  function updateTask(id, { title, dueDate }) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, title, dueDate } : t)),
-    )
+  const listForTask = (t) => state.lists.find(l => l.id === t.listId)
+
+  const detailTask = state.detailId ? state.tasks.find(t => t.id === state.detailId) : null
+
+  const sharedProps = {
+    state, setState, counts, filtered,
+    tint: headerInfo.tint,
+    headerTitle: headerInfo.title,
+    headerSub: headerInfo.sub,
+    smartView: headerInfo.smart,
+    addTask, toggleTask, updateTask, deleteTask, listForTask,
   }
 
-  function addList(name) {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    const id = trimmed.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36)
-    setLists((prev) => [...prev, { id, name: trimmed }])
-    setActiveListId(id)
+  if (isMobile) {
+    return <MobileApp {...sharedProps} />
   }
 
-  function deleteList(id) {
-    if (lists.length <= 1) return // always keep at least one list
-    setLists((prev) => prev.filter((l) => l.id !== id))
-    setTasks((prev) => prev.filter((t) => t.listId !== id))
-    if (activeListId === id) {
-      setActiveListId(lists[0].id)
-    }
-  }
-
-  // ---- Render --------------------------------------------------------
   return (
-    <div className="app-shell">
-      <Sidebar
-        lists={lists}
-        activeListId={activeListId}
-        onSelectList={setActiveListId}
-        onAddList={addList}
-        onDeleteList={deleteList}
-        taskCounts={countOpenTasksByList(tasks)}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '280px 1fr',
+      height: '100vh',
+      background: 'var(--bg)',
+      color: 'var(--ink)',
+    }}>
+      <Sidebar {...sharedProps} onNewReminder={() => setAddTrigger(n => n + 1)} />
+      <MainView {...sharedProps} triggerAdd={addTrigger} />
+      <DetailPopover
+        task={detailTask}
+        list={detailTask ? state.lists.find(l => l.id === detailTask.listId) : null}
+        lists={state.lists}
+        tint={headerInfo.tint}
+        onClose={() => setState(s => ({ ...s, detailId: null }))}
+        onUpdate={updateTask}
+        onDelete={deleteTask}
       />
-      <main className="main-pane">
-        <header className="main-header">
-          <h1>{activeList?.name ?? 'Tasks'}</h1>
-          <p className="main-subhead">
-            {tasksForActiveList.filter((t) => !t.done).length} open
-          </p>
-        </header>
-
-        <AddTaskInput onAdd={addTask} />
-
-        <TaskList
-          tasks={tasksForActiveList}
-          onToggle={toggleTask}
-          onDelete={deleteTask}
-          onUpdateTask={updateTask}
-        />
-      </main>
     </div>
   )
-}
-
-function countOpenTasksByList(tasks) {
-  const counts = {}
-  for (const t of tasks) {
-    if (!t.done) counts[t.listId] = (counts[t.listId] ?? 0) + 1
-  }
-  return counts
 }

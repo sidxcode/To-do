@@ -10,7 +10,7 @@ const INITIAL_STATE = {
   selected: { type: 'today' },
   detailId: null,
   showCompleted: false,
-  mobileScreen: 'home',
+  mobileScreen: 'list',
   lists: SEED_LISTS,
   tasks: makeSeedTasks(),
 }

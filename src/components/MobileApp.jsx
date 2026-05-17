@@ -185,20 +185,18 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
         )}
       </div>
 
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        padding: '12px 18px 20px',
-        background: 'linear-gradient(to top, var(--bg-grouped) 60%, transparent)',
-        pointerEvents: 'none',
-      }}>
-        <button
-          onClick={() => setAdding(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, color: tint, fontSize: 16, fontWeight: 500, pointerEvents: 'auto' }}
-        >
-          <Icon name="plus-circle" size={20} color={tint} />
-          New Reminder
-        </button>
-      </div>
+      <button
+        onClick={() => setAdding(true)}
+        style={{
+          position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          width: 56, height: 56, borderRadius: 999,
+          background: tint,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+        }}
+      >
+        <Icon name="plus" size={24} color="white" stroke={2.5} />
+      </button>
     </div>
   )
 }

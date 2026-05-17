@@ -7,17 +7,12 @@ export default function MainView({
   state, setState, filtered, tint,
   headerTitle, headerSub, smartView,
   addTask, toggleTask, updateTask, deleteTask, listForTask,
-  triggerAdd,
 }) {
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const newInputRef = useRef(null)
 
   useEffect(() => { if (adding) newInputRef.current?.focus() }, [adding])
-
-  useEffect(() => {
-    if (triggerAdd) { setAdding(true) }
-  }, [triggerAdd])
 
   function submitNew() {
     if (newTitle.trim()) addTask(newTitle.trim())
@@ -95,6 +90,7 @@ export default function MainView({
       flexDirection: 'column',
       minWidth: 0,
       overflow: 'hidden',
+      position: 'relative',
     }}>
       <header style={{ padding: '18px 28px 8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
@@ -118,7 +114,7 @@ export default function MainView({
         </button>
       </header>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px 18px 18px' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px 18px 90px' }}>
         {groups ? (
           groups.map(([groupName, items, list], gi) => (
             <div key={gi} style={{ marginBottom: 14 }}>
@@ -161,21 +157,22 @@ export default function MainView({
           </div>
         )}
 
-        {!adding && (
-          <button
-            onClick={() => setAdding(true)}
-            style={{
-              marginTop: 10,
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 12px',
-              fontSize: 14, color: 'var(--tint)', fontWeight: 500,
-            }}
-          >
-            <Icon name="plus-circle" size={18} color="var(--tint)" />
-            New Reminder
-          </button>
-        )}
       </div>
+
+      {!adding && (
+        <button
+          onClick={() => setAdding(true)}
+          style={{
+            position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+            width: 56, height: 56, borderRadius: 999,
+            background: 'var(--tint)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+          }}
+        >
+          <Icon name="plus" size={24} color="white" stroke={2.5} />
+        </button>
+      )}
     </main>
   )
 }

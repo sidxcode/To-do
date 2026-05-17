@@ -166,7 +166,6 @@ export default function Sidebar({ state, setState, counts, onNewReminder }) {
 
       {/* Footer */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         borderTop: '0.5px solid var(--separator)',
         padding: '10px 2px 0',
       }}>
@@ -181,18 +180,6 @@ export default function Sidebar({ state, setState, counts, onNewReminder }) {
         >
           <Icon name="plus" size={13} color="var(--ink-3)" />
           <span>Add List</span>
-        </button>
-        <button
-          className="r-sidebar-add"
-          onClick={onNewReminder}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 8px', borderRadius: 6,
-            fontSize: 13, color: 'var(--tint)', fontWeight: 500,
-          }}
-        >
-          <Icon name="plus-circle" size={16} color="var(--tint)" />
-          <span>New Reminder</span>
         </button>
       </div>
     </aside>

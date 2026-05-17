@@ -18,7 +18,6 @@ const INITIAL_STATE = {
 export default function App() {
   const [state, setState] = useState(INITIAL_STATE)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 700px)').matches)
-  const [addTrigger, setAddTrigger] = useState(0)
 
   // Apply theme to html element
   useEffect(() => {
@@ -151,8 +150,8 @@ export default function App() {
       background: 'var(--bg)',
       color: 'var(--ink)',
     }}>
-      <Sidebar {...sharedProps} onNewReminder={() => setAddTrigger(n => n + 1)} />
-      <MainView {...sharedProps} triggerAdd={addTrigger} />
+      <Sidebar {...sharedProps} />
+      <MainView {...sharedProps} />
       <DetailPopover
         task={detailTask}
         list={detailTask ? state.lists.find(l => l.id === detailTask.listId) : null}

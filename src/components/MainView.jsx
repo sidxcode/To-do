@@ -5,8 +5,6 @@ import { DropdownMenu } from './Modals.jsx'
 import { EmptyState } from './Modals.jsx'
 import { formatTaskDate } from '../lib/utils.js'
 
-const FAB_PINK = '#FF2D55'
-
 export default function MainView({
   state, setState, filtered, tint,
   headerTitle, headerSub, smartView,
@@ -346,40 +344,6 @@ export default function MainView({
         </div>
       )}
 
-      {/* FAB */}
-      {!editMode && (
-        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 15 }}>
-          <button
-            className="r-fab"
-            onMouseDown={e => { if (adding) e.preventDefault() }}
-            onClick={() => adding ? cancel() : setAdding(true)}
-            style={{
-              background: adding ? FAB_PINK : 'var(--tint)',
-              boxShadow: '0 4px 16px rgba(0,0,0,.18)',
-              transition: 'background .2s ease, transform .15s ease, box-shadow .15s ease',
-            }}
-          >
-            <div style={{
-              position: 'absolute',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              opacity: adding ? 0 : 1,
-              transform: adding ? 'rotate(45deg) scale(0.7)' : 'rotate(0deg) scale(1)',
-              transition: 'opacity .18s ease, transform .18s ease',
-            }}>
-              <Icon name="plus" size={24} color="white" stroke={2.5} />
-            </div>
-            <div style={{
-              position: 'absolute',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              opacity: adding ? 1 : 0,
-              transform: adding ? 'rotate(0deg) scale(1)' : 'rotate(-45deg) scale(0.7)',
-              transition: 'opacity .18s ease, transform .18s ease',
-            }}>
-              <Icon name="x" size={22} color="white" stroke={2.5} />
-            </div>
-          </button>
-        </div>
-      )}
     </main>
   )
 }

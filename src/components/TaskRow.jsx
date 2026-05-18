@@ -30,7 +30,7 @@ const SubRow = ({ sub, tint, onToggle }) => (
   </div>
 )
 
-export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, onDelete, selected, isFirst }) {
+export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, onDelete, selected, isFirst, editMode, checked, onToggleSelect }) {
   const subs = task.subtasks || []
   return (
     <>
@@ -46,6 +46,9 @@ export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onS
         onDelete={onDelete}
         selected={selected}
         isFirst={isFirst}
+        editMode={editMode}
+        checked={checked}
+        onToggleSelect={onToggleSelect}
       />
       {subs.map(s => (
         <SubRow
@@ -62,7 +65,7 @@ export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onS
   )
 }
 
-export default function TaskRow({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, onDelete, selected, isFirst }) {
+export default function TaskRow({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, onDelete, selected, isFirst, editMode, checked, onToggleSelect }) {
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(task.title)
   const [expanded, setExpanded] = useState(false)
@@ -126,30 +129,49 @@ export default function TaskRow({ task, list, lists, tint, smartView, onToggle, 
     <div
       ref={rowRef}
       className="r-task"
-      onClick={() => setExpanded(v => !v)}
+      onClick={() => {
+        if (editMode) { onToggleSelect?.(task.id) }
+        else setExpanded(v => !v)
+      }}
       style={{
         display: 'flex', alignItems: 'flex-start', gap: 10,
         padding: expanded ? '10px 14px 12px' : '10px 14px',
         borderTop: isFirst ? 'none' : '0.5px solid var(--separator-2)',
         cursor: 'pointer',
-        background: selected ? 'var(--surface-2)' : 'transparent',
+        background: checked ? 'rgba(0,122,255,.06)' : selected ? 'var(--surface-2)' : 'transparent',
         minHeight: 44,
         position: 'relative',
+        transition: 'background .12s',
       }}
     >
-      <button
-        className="r-check"
-        onClick={e => { e.stopPropagation(); onToggle(task.id) }}
-        style={{
-          width: 18, height: 18, borderRadius: 999,
-          border: `1.6px solid ${task.done ? tint : 'var(--ink-4)'}`,
-          background: task.done ? tint : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginTop: 2, flex: '0 0 18px',
-        }}
-      >
-        {task.done && <Icon name="check" size={10} color="white" stroke={3} />}
-      </button>
+      {editMode ? (
+        <div
+          style={{
+            width: 18, height: 18, borderRadius: 999,
+            border: `1.6px solid ${checked ? tint : 'var(--ink-4)'}`,
+            background: checked ? tint : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginTop: 2, flex: '0 0 18px',
+            transition: 'background .15s, border-color .15s',
+          }}
+        >
+          {checked && <Icon name="check" size={10} color="white" stroke={3} />}
+        </div>
+      ) : (
+        <button
+          className="r-check"
+          onClick={e => { e.stopPropagation(); onToggle(task.id) }}
+          style={{
+            width: 18, height: 18, borderRadius: 999,
+            border: `1.6px solid ${task.done ? tint : 'var(--ink-4)'}`,
+            background: task.done ? tint : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginTop: 2, flex: '0 0 18px',
+          }}
+        >
+          {task.done && <Icon name="check" size={10} color="white" stroke={3} />}
+        </button>
+      )}
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 0 }}>
@@ -368,22 +390,24 @@ export default function TaskRow({ task, list, lists, tint, smartView, onToggle, 
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2, alignSelf: 'center', flex: '0 0 auto' }}>
-        <button
-          className="r-icon-btn"
-          onClick={e => { e.stopPropagation(); onDelete(task.id) }}
-          style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999 }}
-        >
-          <Icon name="x" size={14} color="var(--c-red)" stroke={2.2} />
-        </button>
-        <button
-          className="r-task-info r-icon-btn"
-          onClick={e => { e.stopPropagation(); setExpanded(false); onSelect(task.id) }}
-          style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999 }}
-        >
-          <Icon name="i" size={18} color="var(--c-blue)" stroke={1.8} />
-        </button>
-      </div>
+      {!editMode && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, alignSelf: 'center', flex: '0 0 auto' }}>
+          <button
+            className="r-icon-btn"
+            onClick={e => { e.stopPropagation(); onDelete(task.id) }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999 }}
+          >
+            <Icon name="x" size={14} color="var(--c-red)" stroke={2.2} />
+          </button>
+          <button
+            className="r-task-info r-icon-btn"
+            onClick={e => { e.stopPropagation(); setExpanded(false); onSelect(task.id) }}
+            style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999 }}
+          >
+            <Icon name="i" size={18} color="var(--c-blue)" stroke={1.8} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

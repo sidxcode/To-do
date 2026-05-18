@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Icon from './Icons.jsx'
+import { DropdownMenu } from './Modals.jsx'
 import { SMART_VIEWS } from '../lib/utils.js'
 
 const SmartTile = ({ tile, active, count, onClick }) => (
@@ -34,45 +35,81 @@ const SmartTile = ({ tile, active, count, onClick }) => (
   </div>
 )
 
-const ListRow = ({ list, count, active, onClick }) => (
-  <div
-    className={`r-list-row ${active ? 'active' : ''}`}
-    onClick={onClick}
-    style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '6px 10px',
-      cursor: 'pointer',
-      fontSize: 14,
-      color: 'var(--ink)',
-    }}
-  >
-    <div style={{
-      width: 24, height: 24, borderRadius: 999,
-      background: list.color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flex: '0 0 24px',
-    }}>
-      <Icon name="list" size={13} color="white" stroke={2.2} />
-    </div>
-    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{list.name}</span>
-    <span style={{ fontSize: 13, color: 'var(--ink-3)', fontVariantNumeric: 'tabular-nums' }}>{count || 0}</span>
-  </div>
-)
+const ListRow = ({ list, count, active, onClick, onEdit, onDelete }) => {
+  const [hovered, setHovered] = useState(false)
+  const [menuAnchor, setMenuAnchor] = useState(null)
+  const btnRef = useRef(null)
 
-export default function Sidebar({ state, setState, counts, addList, user, onSignOut }) {
-  const [addingList, setAddingList] = useState(false)
-  const [newListName, setNewListName] = useState('')
+  function openMenu(e) {
+    e.stopPropagation()
+    setMenuAnchor(btnRef.current.getBoundingClientRect())
+  }
+
+  return (
+    <>
+      <div
+        className={`r-list-row ${active ? 'active' : ''}`}
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '6px 10px',
+          cursor: 'pointer',
+          fontSize: 14,
+          color: 'var(--ink)',
+        }}
+      >
+        <div style={{
+          width: 24, height: 24, borderRadius: 999,
+          background: list.color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flex: '0 0 24px',
+        }}>
+          <Icon name={list.icon || 'list'} size={13} color="white" stroke={2.2} />
+        </div>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{list.name}</span>
+        {hovered ? (
+          <button
+            ref={btnRef}
+            onClick={openMenu}
+            className="r-icon-btn"
+            style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5, flex: '0 0 22px' }}
+          >
+            <Icon name="ellipsis" size={15} color="var(--ink-3)" />
+          </button>
+        ) : (
+          <span style={{ fontSize: 13, color: 'var(--ink-3)', fontVariantNumeric: 'tabular-nums', minWidth: 16, textAlign: 'right' }}>{count || 0}</span>
+        )}
+      </div>
+      {menuAnchor && (
+        <DropdownMenu
+          anchorRect={menuAnchor}
+          onClose={() => { setMenuAnchor(null); setHovered(false) }}
+          items={[
+            { label: 'Edit List', icon: 'pencil', action: onEdit },
+            { separator: true },
+            { label: 'Delete List', icon: 'trash', danger: true, action: onDelete },
+          ]}
+        />
+      )}
+    </>
+  )
+}
+
+export default function Sidebar({ state, setState, counts, addList, deleteList, updateList, user, onSignOut, setModal, modal, searchOpen, setSearchOpen, searchQuery, setSearchQuery }) {
+  const searchRef = useRef(null)
 
   const select = (sel) => setState(s => ({ ...s, selected: sel, detailId: null }))
   const isSel = (sel) => JSON.stringify(sel) === JSON.stringify(state.selected)
 
-  function submitNewList() {
-    const name = newListName.trim()
-    if (!name) { setAddingList(false); return }
-    const listId = addList(name)
-    setNewListName('')
-    setAddingList(false)
-    select({ type: 'list', id: listId })
+  function handleSearchClick() {
+    setSearchOpen(true)
+    setTimeout(() => searchRef.current?.focus(), 50)
+  }
+
+  function handleSearchBlur() {
+    if (!searchQuery.trim()) setSearchOpen(false)
   }
 
   return (
@@ -111,26 +148,57 @@ export default function Sidebar({ state, setState, counts, addList, user, onSign
             {user?.user_metadata?.full_name || user?.email || 'Account'}
           </span>
         </button>
-        <button
-          className="r-icon-btn"
-          onClick={() => setState(s => ({ ...s, theme: s.theme === 'light' ? 'dark' : 'light' }))}
-          style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', borderRadius: 5 }}
-        >
-          <Icon name={state.theme === 'light' ? 'moon' : 'sun'} size={13} />
-        </button>
+        <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <button
+            className="r-icon-btn"
+            onClick={() => setModal({ type: 'keyboard-help' })}
+            title="Keyboard shortcuts (?)"
+            style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', borderRadius: 5 }}
+          >
+            <Icon name="help" size={13} />
+          </button>
+          <button
+            className="r-icon-btn"
+            onClick={() => setState(s => ({ ...s, theme: s.theme === 'light' ? 'dark' : 'light' }))}
+            style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)', borderRadius: 5 }}
+          >
+            <Icon name={state.theme === 'light' ? 'moon' : 'sun'} size={13} />
+          </button>
+        </div>
       </div>
 
       {/* Search bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: '6px 10px',
-        background: 'var(--surface-2)',
-        borderRadius: 8,
-        fontSize: 13,
-        color: 'var(--ink-3)',
-      }}>
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '6px 10px',
+          background: 'var(--surface-2)',
+          borderRadius: 8,
+          fontSize: 13,
+          color: 'var(--ink-3)',
+          cursor: searchOpen ? 'text' : 'pointer',
+        }}
+        onClick={!searchOpen ? handleSearchClick : undefined}
+      >
         <Icon name="search" size={13} color="var(--ink-3)" />
-        <span style={{ flex: 1 }}>Search</span>
+        {searchOpen ? (
+          <input
+            ref={searchRef}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onBlur={handleSearchBlur}
+            onKeyDown={e => { if (e.key === 'Escape') { setSearchQuery(''); setSearchOpen(false) } }}
+            placeholder="Search"
+            style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}
+          />
+        ) : (
+          <span style={{ flex: 1 }}>Search</span>
+        )}
+        {searchOpen && searchQuery && (
+          <button onClick={() => { setSearchQuery(''); setSearchOpen(false) }} style={{ color: 'var(--ink-3)', padding: 2 }}>
+            <Icon name="x" size={12} />
+          </button>
+        )}
       </div>
 
       {/* Smart tiles */}
@@ -141,7 +209,7 @@ export default function Sidebar({ state, setState, counts, addList, user, onSign
             tile={sv}
             count={counts[sv.id] || 0}
             active={isSel({ type: sv.id })}
-            onClick={() => select({ type: sv.id })}
+            onClick={() => { select({ type: sv.id }); setSearchOpen(false); setSearchQuery('') }}
           />
         ))}
       </div>
@@ -158,23 +226,11 @@ export default function Sidebar({ state, setState, counts, addList, user, onSign
               list={l}
               count={counts.lists?.[l.id]}
               active={isSel({ type: 'list', id: l.id })}
-              onClick={() => select({ type: 'list', id: l.id })}
+              onClick={() => { select({ type: 'list', id: l.id }); setSearchOpen(false); setSearchQuery('') }}
+              onEdit={() => setModal({ type: 'edit-list', data: l })}
+              onDelete={() => deleteList(l.id)}
             />
           ))}
-          {addingList && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
-              <div style={{ width: 24, height: 24, borderRadius: 999, background: 'var(--surface-3)', flex: '0 0 24px' }} />
-              <input
-                autoFocus
-                value={newListName}
-                onChange={e => setNewListName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') submitNewList(); if (e.key === 'Escape') setAddingList(false) }}
-                onBlur={submitNewList}
-                placeholder="List Name"
-                style={{ fontSize: 14, flex: 1, color: 'var(--ink)' }}
-              />
-            </div>
-          )}
         </div>
       </div>
 
@@ -187,7 +243,7 @@ export default function Sidebar({ state, setState, counts, addList, user, onSign
       }}>
         <button
           className="r-sidebar-add"
-          onClick={() => setAddingList(true)}
+          onClick={() => setModal({ type: 'new-list' })}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 8px', borderRadius: 6,

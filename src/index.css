@@ -101,6 +101,104 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
 .r-toolbar-btn:hover { color: var(--ink); background: var(--surface-2); }
 .r-detail-input:focus { outline: 2px solid var(--tint); outline-offset: 1px; border-radius: 4px; }
 
+/* Animations */
+@keyframes r-fade-in {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+@keyframes r-pop-in {
+  from { opacity: 0; transform: scale(0.92) }
+  to   { opacity: 1; transform: scale(1) }
+}
+@keyframes r-slide-up {
+  from { opacity: 0; transform: translateY(10px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
+@keyframes r-strike {
+  from { text-decoration-color: transparent }
+  to   { text-decoration-color: currentColor }
+}
+
+/* Modal overlay */
+.r-modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  animation: r-fade-in .15s ease;
+}
+.r-modal-card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 60px rgba(0,0,0,.28), 0 0 0 0.5px var(--separator);
+  animation: r-pop-in .2s ease;
+  overflow: hidden;
+}
+.r-modal-sheet {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: var(--surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: 0 -4px 40px rgba(0,0,0,.18);
+  animation: r-slide-up .22s ease;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Dropdown menu */
+.r-menu {
+  position: fixed; z-index: 200;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 0 0 0.5px var(--separator);
+  padding: 5px;
+  min-width: 160px;
+  animation: r-pop-in .15s ease;
+}
+.r-menu-item {
+  display: flex; align-items: center; gap: 10;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5; color: var(--ink);
+  cursor: pointer;
+  transition: background .1s;
+  width: 100%; text-align: left;
+}
+.r-menu-item:hover { background: var(--surface-2); }
+.r-menu-item.danger { color: var(--c-red); }
+.r-menu-separator { height: 0.5px; background: var(--separator); margin: 4px 0; }
+
+/* Color swatch */
+.r-color-sw {
+  width: 28px; height: 28px; border-radius: 999px;
+  cursor: pointer; position: relative;
+  transition: transform .12s;
+}
+.r-color-sw:hover { transform: scale(1.12); }
+.r-color-sw.selected::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 999px;
+  border: 2.5px solid var(--surface);
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+/* Keyboard shortcut badge */
+.r-kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 1px 5px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  font-size: 11px; font-family: var(--font);
+  color: var(--ink-3);
+  border: 0.5px solid var(--separator);
+}
+
+/* Bulk toolbar */
+.r-bulk-toolbar {
+  display: flex; gap: 4; justify-content: space-around;
+  padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+  background: var(--surface);
+  border-top: 0.5px solid var(--separator);
+  animation: r-slide-up .18s ease;
+}
+
 .r-fab {
   width: 56px; height: 56px; border-radius: 999px;
   display: flex; align-items: center; justify-content: center;

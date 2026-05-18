@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Sidebar from './components/Sidebar.jsx'
 import MainView from './components/MainView.jsx'
 import DetailPopover from './components/DetailPopover.jsx'
 import MobileApp from './components/MobileApp.jsx'
 import LoginScreen from './components/LoginScreen.jsx'
+import { NewListModal, ConfirmModal, KeyboardHelpModal } from './components/Modals.jsx'
 import { supabase } from './lib/supabase.js'
 import { uid, todayISO } from './lib/utils.js'
 
@@ -61,6 +62,8 @@ const INITIAL_STATE = {
   tasks: [],
 }
 
+// Modal types: null | 'new-list' | 'edit-list' | 'delete-list' | 'keyboard-help' | 'confirm-bulk-delete'
+
 const LIST_COLORS = [
   'var(--c-blue)', 'var(--c-orange)', 'var(--c-green)',
   'var(--c-pink)', 'var(--c-purple)', 'var(--c-red)', 'var(--c-mint)',
@@ -73,6 +76,11 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [state, setState] = useState(INITIAL_STATE)
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 700px)').matches)
+  const [modal, setModal] = useState(null) // { type, data }
+  const [editMode, setEditMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // Apply theme
   useEffect(() => {
@@ -130,6 +138,25 @@ export default function App() {
     }))
   }
 
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  useEffect(() => {
+    function onKey(e) {
+      const tag = document.activeElement?.tagName
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA'
+      if (e.key === '?' && !typing) { setModal({ type: 'keyboard-help' }); return }
+      if (!e.metaKey && !e.ctrlKey) return
+      switch (e.key) {
+        case 'n': e.preventDefault(); if (!isMobile) document.dispatchEvent(new CustomEvent('r-new-task')); break
+        case 'f': e.preventDefault(); setSearchOpen(true); break
+        case 'd': e.preventDefault(); setState(s => ({ ...s, theme: s.theme === 'light' ? 'dark' : 'light' })); break
+        case 'C': if (e.shiftKey) { e.preventDefault(); setState(s => ({ ...s, showCompleted: !s.showCompleted })) } break
+        case 'e': e.preventDefault(); setEditMode(v => !v); break
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isMobile])
+
   // ── Derived counts ─────────────────────────────────────────────────────────
   const counts = useMemo(() => {
     const today = todayISO(0)
@@ -148,16 +175,23 @@ export default function App() {
     const { selected, tasks, showCompleted } = state
     const show = (t) => !t.done || showCompleted
     const today = todayISO(0)
-    switch (selected.type) {
-      case 'today':     return tasks.filter(t => show(t) && t.dueDate && t.dueDate <= today)
-      case 'scheduled': return tasks.filter(t => show(t) && t.dueDate)
-      case 'all':       return tasks.filter(show)
-      case 'flagged':   return tasks.filter(t => show(t) && t.flagged)
-      case 'completed': return tasks.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))
-      case 'list':      return tasks.filter(t => show(t) && t.listId === selected.id)
-      default:          return tasks
+    let result
+    if (searchOpen && searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q))
+    } else {
+      switch (selected.type) {
+        case 'today':     result = tasks.filter(t => show(t) && t.dueDate && t.dueDate <= today); break
+        case 'scheduled': result = tasks.filter(t => show(t) && t.dueDate); break
+        case 'all':       result = tasks.filter(show); break
+        case 'flagged':   result = tasks.filter(t => show(t) && t.flagged); break
+        case 'completed': result = tasks.filter(t => t.done).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)); break
+        case 'list':      result = tasks.filter(t => show(t) && t.listId === selected.id); break
+        default:          result = tasks
+      }
     }
-  }, [state])
+    return result
+  }, [state, searchOpen, searchQuery])
 
   // ── Header info ────────────────────────────────────────────────────────────
   const headerInfo = useMemo(() => {
@@ -231,9 +265,9 @@ export default function App() {
 
   // ── List mutations ─────────────────────────────────────────────────────────
 
-  function addList(name) {
-    const color = LIST_COLORS[Math.floor(Math.random() * LIST_COLORS.length)]
-    const list = { id: uid(), name, color, icon: 'list' }
+  function addList(name, color, icon) {
+    const c = color || LIST_COLORS[Math.floor(Math.random() * LIST_COLORS.length)]
+    const list = { id: uid(), name, color: c, icon: icon || 'list' }
     setState(s => ({ ...s, lists: [...s.lists, list] }))
     supabase.from('lists').insert(listToDb(list, user.id))
       .then(({ error }) => { if (error) console.error('addList:', error) })
@@ -248,6 +282,64 @@ export default function App() {
     }))
     supabase.from('lists').delete().eq('id', id)
       .then(({ error }) => { if (error) console.error('deleteList:', error) })
+  }
+
+  function updateList(id, patch) {
+    setState(s => ({ ...s, lists: s.lists.map(l => l.id === id ? { ...l, ...patch } : l) }))
+    supabase.from('lists').update(patch).eq('id', id)
+      .then(({ error }) => { if (error) console.error('updateList:', error) })
+  }
+
+  // ── Bulk operations ─────────────────────────────────────────────────────────
+
+  function bulkComplete() {
+    const ids = [...selectedIds]
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.map(t => ids.includes(t.id) ? { ...t, done: true, doneAt: Date.now() } : t),
+    }))
+    const patch = { done: true, done_at: Date.now() }
+    Promise.all(ids.map(id => supabase.from('tasks').update(patch).eq('id', id)))
+    setSelectedIds(new Set())
+    setEditMode(false)
+  }
+
+  function bulkDelete() {
+    const ids = [...selectedIds]
+    setState(s => ({ ...s, tasks: s.tasks.filter(t => !ids.includes(t.id)) }))
+    Promise.all(ids.map(id => supabase.from('tasks').delete().eq('id', id)))
+    setSelectedIds(new Set())
+    setEditMode(false)
+  }
+
+  function bulkFlag() {
+    const ids = [...selectedIds]
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.map(t => ids.includes(t.id) ? { ...t, flagged: true } : t),
+    }))
+    Promise.all(ids.map(id => supabase.from('tasks').update({ flagged: true }).eq('id', id)))
+    setSelectedIds(new Set())
+    setEditMode(false)
+  }
+
+  function bulkMoveTo(listId) {
+    const ids = [...selectedIds]
+    setState(s => ({
+      ...s,
+      tasks: s.tasks.map(t => ids.includes(t.id) ? { ...t, listId } : t),
+    }))
+    Promise.all(ids.map(id => supabase.from('tasks').update({ list_id: listId }).eq('id', id)))
+    setSelectedIds(new Set())
+    setEditMode(false)
+  }
+
+  function toggleSelectId(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   async function signOut() {
@@ -267,7 +359,12 @@ export default function App() {
     headerSub: headerInfo.sub,
     smartView: headerInfo.smart,
     addTask, toggleTask, updateTask, deleteTask, listForTask,
-    addList, deleteList, user, onSignOut: signOut,
+    addList, deleteList, updateList, user, onSignOut: signOut,
+    modal, setModal,
+    editMode, setEditMode,
+    selectedIds, setSelectedIds, toggleSelectId,
+    bulkComplete, bulkDelete, bulkFlag, bulkMoveTo,
+    searchQuery, setSearchQuery, searchOpen, setSearchOpen,
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -306,6 +403,32 @@ export default function App() {
         onUpdate={updateTask}
         onDelete={deleteTask}
       />
+
+      {/* Global modals */}
+      {modal?.type === 'new-list' && (
+        <NewListModal
+          onSave={({ name, color, icon }) => addList(name, color, icon)}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === 'edit-list' && modal.data && (
+        <NewListModal
+          initial={modal.data}
+          onSave={({ name, color, icon }) => updateList(modal.data.id, { name, color, icon })}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === 'keyboard-help' && (
+        <KeyboardHelpModal onClose={() => setModal(null)} />
+      )}
+      {modal?.type === 'confirm-bulk-delete' && (
+        <ConfirmModal
+          title={`Delete ${selectedIds.size} reminder${selectedIds.size !== 1 ? 's' : ''}?`}
+          message="This cannot be undone."
+          onConfirm={bulkDelete}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   )
 }

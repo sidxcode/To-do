@@ -77,6 +77,7 @@ export default function MainView({
           key={t.id}
           task={t}
           list={groupList || listForTask(t)}
+          lists={state.lists}
           tint={groupTint}
           smartView={!groupList}
           onToggle={toggleTask}

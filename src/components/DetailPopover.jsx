@@ -35,17 +35,35 @@ export const Chip = ({ children, active, onClick }) => (
 )
 
 export const DateChips = ({ value, onChange }) => {
+  const today = todayISO(0)
   const opts = [
-    { label: 'Today', val: todayISO(0) },
+    { label: 'Today', val: today },
     { label: 'Tomorrow', val: todayISO(1) },
     { label: 'Weekend', val: todayISO((6 - new Date().getDay() + 7) % 7 || 7) },
     { label: 'None', val: null },
   ]
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-      {opts.map(o => (
-        <Chip key={o.label} active={value === o.val} onClick={() => onChange(o.val)}>{o.label}</Chip>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {opts.map(o => (
+          <Chip key={o.label} active={value === o.val} onClick={() => onChange(o.val)}>{o.label}</Chip>
+        ))}
+      </div>
+      <input
+        type="date"
+        value={value || ''}
+        min={today}
+        onChange={e => onChange(e.target.value || null)}
+        style={{
+          fontSize: 12.5,
+          color: 'var(--ink-3)',
+          padding: '3px 8px',
+          borderRadius: 6,
+          border: '0.5px solid var(--separator)',
+          background: 'var(--surface-2)',
+          cursor: 'pointer',
+        }}
+      />
     </div>
   )
 }

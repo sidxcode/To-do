@@ -59,7 +59,7 @@ const ListRow = ({ list, count, active, onClick }) => (
   </div>
 )
 
-export default function Sidebar({ state, setState, counts, onNewReminder }) {
+export default function Sidebar({ state, setState, counts, addList, user, onSignOut }) {
   const [addingList, setAddingList] = useState(false)
   const [newListName, setNewListName] = useState('')
 
@@ -69,13 +69,10 @@ export default function Sidebar({ state, setState, counts, onNewReminder }) {
   function submitNewList() {
     const name = newListName.trim()
     if (!name) { setAddingList(false); return }
-    const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36)
-    const colors = ['var(--c-blue)', 'var(--c-orange)', 'var(--c-green)', 'var(--c-pink)', 'var(--c-purple)', 'var(--c-red)', 'var(--c-mint)']
-    const color = colors[Math.floor(Math.random() * colors.length)]
-    setState(s => ({ ...s, lists: [...s.lists, { id, name, color, icon: 'list' }] }))
+    const listId = addList(name)
     setNewListName('')
     setAddingList(false)
-    select({ type: 'list', id })
+    select({ type: 'list', id: listId })
   }
 
   return (
@@ -91,10 +88,29 @@ export default function Sidebar({ state, setState, counts, onNewReminder }) {
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 16 }}>👤</span>
-          <span>iCloud</span>
-        </div>
+        <button
+          onClick={onSignOut}
+          className="r-icon-btn"
+          title="Sign out"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 13, fontWeight: 500, color: 'var(--ink-3)',
+            padding: '2px 4px', borderRadius: 5,
+            overflow: 'hidden', maxWidth: 160,
+          }}
+        >
+          {user?.user_metadata?.avatar_url ? (
+            <img
+              src={user.user_metadata.avatar_url}
+              style={{ width: 20, height: 20, borderRadius: 999, flex: '0 0 20px' }}
+            />
+          ) : (
+            <span style={{ fontSize: 16 }}>👤</span>
+          )}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.user_metadata?.full_name || user?.email || 'Account'}
+          </span>
+        </button>
         <button
           className="r-icon-btn"
           onClick={() => setState(s => ({ ...s, theme: s.theme === 'light' ? 'dark' : 'light' }))}

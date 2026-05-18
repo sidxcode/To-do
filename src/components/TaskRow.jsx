@@ -30,7 +30,7 @@ const SubRow = ({ sub, tint, onToggle }) => (
   </div>
 )
 
-export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, selected, isFirst }) {
+export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, onDelete, selected, isFirst }) {
   const subs = task.subtasks || []
   return (
     <>
@@ -43,6 +43,7 @@ export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onS
         onToggle={onToggle}
         onSelect={onSelect}
         onUpdate={onUpdate}
+        onDelete={onDelete}
         selected={selected}
         isFirst={isFirst}
       />
@@ -61,7 +62,7 @@ export function TaskWithSubs({ task, list, lists, tint, smartView, onToggle, onS
   )
 }
 
-export default function TaskRow({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, selected, isFirst }) {
+export default function TaskRow({ task, list, lists, tint, smartView, onToggle, onSelect, onUpdate, onDelete, selected, isFirst }) {
   const [editing, setEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(task.title)
   const [expanded, setExpanded] = useState(false)
@@ -367,17 +368,22 @@ export default function TaskRow({ task, list, lists, tint, smartView, onToggle, 
         )}
       </div>
 
-      <button
-        className="r-task-info r-icon-btn"
-        onClick={e => { e.stopPropagation(); setExpanded(false); onSelect(task.id) }}
-        style={{
-          width: 22, height: 22, borderRadius: 999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'transparent', flex: '0 0 22px', alignSelf: 'center',
-        }}
-      >
-        <Icon name="i" size={18} color="var(--c-blue)" stroke={1.8} />
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, alignSelf: 'center', flex: '0 0 auto' }}>
+        <button
+          className="r-icon-btn"
+          onClick={e => { e.stopPropagation(); onDelete(task.id) }}
+          style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999 }}
+        >
+          <Icon name="x" size={14} color="var(--c-red)" stroke={2.2} />
+        </button>
+        <button
+          className="r-task-info r-icon-btn"
+          onClick={e => { e.stopPropagation(); setExpanded(false); onSelect(task.id) }}
+          style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999 }}
+        >
+          <Icon name="i" size={18} color="var(--c-blue)" stroke={1.8} />
+        </button>
+      </div>
     </div>
   )
 }

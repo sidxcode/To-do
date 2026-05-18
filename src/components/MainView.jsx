@@ -83,6 +83,7 @@ export default function MainView({
           onToggle={toggleTask}
           onSelect={id => setState(s => ({ ...s, detailId: id }))}
           onUpdate={updateTask}
+          onDelete={deleteTask}
           selected={state.detailId === t.id}
           isFirst={i === 0}
         />

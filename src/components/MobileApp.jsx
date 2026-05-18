@@ -75,7 +75,7 @@ const HomeScreen = ({ state, setState, counts }) => {
 }
 
 // ── Mobile task row ──────────────────────────────────────────────────────────
-const MobileTaskRow = ({ task, list, tint, smartView, onToggle, onSelect }) => {
+const MobileTaskRow = ({ task, list, tint, smartView, onToggle, onSelect, onDelete }) => {
   const overdue = isOverdue(task.dueDate, task.dueTime, task.done)
   const dateStr = formatTaskDate(task.dueDate, task.dueTime)
   return (
@@ -110,12 +110,18 @@ const MobileTaskRow = ({ task, list, tint, smartView, onToggle, onSelect }) => {
           </div>
         ) : null}
       </div>
+      <button
+        onClick={e => { e.stopPropagation(); onDelete(task.id) }}
+        style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', flex: '0 0 32px' }}
+      >
+        <Icon name="x" size={15} color="var(--c-red)" stroke={2.2} />
+      </button>
     </div>
   )
 }
 
 // ── List view (slides in) ────────────────────────────────────────────────────
-const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSub, smartView, toggleTask, addTask, listForTask }) => {
+const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSub, smartView, toggleTask, addTask, deleteTask, listForTask }) => {
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
   const inputRef = useRef(null)
@@ -176,6 +182,7 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
                 smartView={smartView}
                 onToggle={toggleTask}
                 onSelect={id => setState(s => ({ ...s, detailId: id }))}
+                onDelete={deleteTask}
               />
             ))}
             {adding && (
@@ -382,6 +389,7 @@ export default function MobileApp({ state, setState, counts, filtered, tint, hea
         smartView={smartView}
         toggleTask={toggleTask}
         addTask={addTask}
+        deleteTask={deleteTask}
         listForTask={listForTask}
       />
       <DetailSheet

@@ -3,8 +3,6 @@ import Icon from './Icons.jsx'
 import { SMART_VIEWS, formatTaskDate, isOverdue } from '../lib/utils.js'
 import { Toggle, DateChips, TimeChips, PriorityChips, Picker, SubtasksEditor } from './DetailPopover.jsx'
 
-const FAB_PINK = '#FF2D55'
-
 // ── Home tile ────────────────────────────────────────────────────────────────
 const HomeTile = ({ tile, count, onClick }) => (
   <div onClick={onClick} className="r-tile" style={{
@@ -124,7 +122,9 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
   useEffect(() => { if (adding) inputRef.current?.focus() }, [adding])
 
   const back = () => setState(s => ({ ...s, mobileScreen: 'home', detailId: null }))
-  const submitNew = () => {
+
+  function cancel() { setNewTitle(''); setAdding(false) }
+  function submit() {
     if (newTitle.trim()) addTask(newTitle.trim())
     setNewTitle(''); setAdding(false)
   }
@@ -138,7 +138,8 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
       zIndex: 20,
       display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 8px' }}>
+      {/* Nav bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 8px', flexShrink: 0 }}>
         <button onClick={back} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', color: 'var(--tint)', fontSize: 17 }}>
           <Icon name="chevron" size={16} color="var(--tint)" style={{ transform: 'rotate(180deg)' }} stroke={2.4} />
           Lists
@@ -146,19 +147,27 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
         <button style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--tint)', padding: '6px 8px' }}>⋯</button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 100px' }}>
+      {/* Scrollable content — tap empty area to start adding */}
+      <div
+        style={{ flex: 1, overflow: 'auto', padding: '0 16px' }}
+        onClick={e => { if (e.target === e.currentTarget && !adding) setAdding(true) }}
+      >
         <div style={{ padding: '4px 4px 16px' }}>
           <div style={{ fontFamily: 'var(--font-rounded)', fontSize: 34, fontWeight: 700, color: tint, letterSpacing: '-0.02em' }}>{headerTitle}</div>
           {headerSub && <div style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 2 }}>{headerSub}</div>}
         </div>
 
         {filtered.length === 0 && !adding ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)' }}>
+          <div
+            onClick={() => setAdding(true)}
+            style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-3)', cursor: 'pointer' }}
+          >
             <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>No Reminders</div>
+            <div style={{ fontSize: 13 }}>Tap to add one.</div>
           </div>
         ) : (
-          <div style={{ background: 'var(--surface)', borderRadius: 12, overflow: 'hidden' }}>
-            {filtered.map((t, i) => (
+          <div style={{ background: 'var(--surface)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+            {filtered.map((t) => (
               <MobileTaskRow
                 key={t.id}
                 task={t}
@@ -176,10 +185,9 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
                   ref={inputRef}
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') submitNew(); if (e.key === 'Escape') { setNewTitle(''); setAdding(false) } }}
-                  onBlur={() => { if (newTitle.trim()) submitNew(); else setAdding(false) }}
+                  onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') cancel() }}
                   placeholder="New Reminder"
-                  style={{ fontSize: 16, color: 'var(--ink)' }}
+                  style={{ fontSize: 16, color: 'var(--ink)', flex: 1 }}
                 />
               </div>
             )}
@@ -187,37 +195,47 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
         )}
       </div>
 
-      {/* FAB */}
-      <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', zIndex: 35 }}>
-        <button
-          className="r-fab"
-          onMouseDown={e => { if (adding) e.preventDefault() }}
-          onClick={() => adding ? (setNewTitle(''), setAdding(false)) : setAdding(true)}
-          style={{
-            background: adding ? FAB_PINK : tint,
-            boxShadow: '0 4px 16px rgba(0,0,0,.18)',
-            transition: 'background .2s ease, transform .15s ease, box-shadow .15s ease',
-          }}
-        >
-          <div style={{
-            position: 'absolute',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: adding ? 0 : 1,
-            transform: adding ? 'rotate(45deg) scale(0.7)' : 'rotate(0deg) scale(1)',
-            transition: 'opacity .18s ease, transform .18s ease',
-          }}>
-            <Icon name="plus" size={24} color="white" stroke={2.5} />
+      {/* Bottom toolbar — FAB at rest, Cancel + Done when adding */}
+      <div style={{
+        flexShrink: 0,
+        background: 'var(--bg-grouped)',
+        borderTop: adding ? '0.5px solid var(--separator)' : 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 28px',
+        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+        minHeight: 72,
+      }}>
+        {adding ? (
+          <>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={cancel}
+              style={{ fontSize: 17, color: 'var(--c-red)', padding: '6px 0', fontWeight: 500 }}
+            >
+              Cancel
+            </button>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={submit}
+              style={{ fontSize: 17, color: 'var(--tint)', padding: '6px 0', fontWeight: 600 }}
+            >
+              Done
+            </button>
+          </>
+        ) : (
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <button
+              className="r-fab"
+              onClick={() => setAdding(true)}
+              style={{
+                background: tint,
+                boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+              }}
+            >
+              <Icon name="plus" size={24} color="white" stroke={2.5} />
+            </button>
           </div>
-          <div style={{
-            position: 'absolute',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: adding ? 1 : 0,
-            transform: adding ? 'rotate(0deg) scale(1)' : 'rotate(-45deg) scale(0.7)',
-            transition: 'opacity .18s ease, transform .18s ease',
-          }}>
-            <Icon name="x" size={22} color="white" stroke={2.5} />
-          </div>
-        </button>
+        )}
       </div>
     </div>
   )

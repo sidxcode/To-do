@@ -202,48 +202,33 @@ const ListView = ({ open, state, setState, filtered, tint, headerTitle, headerSu
         )}
       </div>
 
-      {/* Bottom toolbar — FAB at rest, Cancel + Done when adding */}
-      <div style={{
-        flexShrink: 0,
-        background: 'var(--bg-grouped)',
-        borderTop: adding ? '0.5px solid var(--separator)' : 'none',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 28px',
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-        minHeight: 72,
-      }}>
-        {adding ? (
-          <>
-            <button
-              onMouseDown={e => e.preventDefault()}
-              onClick={cancel}
-              style={{ fontSize: 17, color: 'var(--c-red)', padding: '6px 0', fontWeight: 500 }}
-            >
-              Cancel
-            </button>
-            <button
-              onMouseDown={e => e.preventDefault()}
-              onClick={submit}
-              style={{ fontSize: 17, color: 'var(--tint)', padding: '6px 0', fontWeight: 600 }}
-            >
-              Done
-            </button>
-          </>
-        ) : (
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <button
-              className="r-fab"
-              onClick={() => setAdding(true)}
-              style={{
-                background: tint,
-                boxShadow: '0 4px 16px rgba(0,0,0,.18)',
-              }}
-            >
-              <Icon name="plus" size={24} color="white" stroke={2.5} />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Bottom toolbar — only visible when adding */}
+      {adding && (
+        <div style={{
+          flexShrink: 0,
+          background: 'var(--bg-grouped)',
+          borderTop: '0.5px solid var(--separator)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '12px 28px',
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+          minHeight: 60,
+        }}>
+          <button
+            onMouseDown={e => e.preventDefault()}
+            onClick={cancel}
+            style={{ fontSize: 17, color: 'var(--c-red)', padding: '6px 0', fontWeight: 500 }}
+          >
+            Cancel
+          </button>
+          <button
+            onMouseDown={e => e.preventDefault()}
+            onClick={submit}
+            style={{ fontSize: 17, color: 'var(--tint)', padding: '6px 0', fontWeight: 600 }}
+          >
+            Done
+          </button>
+        </div>
+      )}
     </div>
   )
 }

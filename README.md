@@ -1,84 +1,105 @@
-# To-do app (v0.1)
+# 📝 Reminders
 
-A simple cross-device to-do list. **Phase 1** is just the local UI — no backend, no login. Tasks live in browser memory and reset on page reload. We add Supabase (Postgres + Google sign-in + cross-device sync) in Phase 2.
+> A personal to-do and note-taking app built as part of my journey into **vibe coding** — using AI tools to build real, useful software for myself.
+
+Live demo: **https://to-do-phi-smoky.vercel.app/#**
 
 ---
 
-## Run it locally
+## What is this?
 
-Prerequisites: **Node.js 18 or newer**. Check what you have:
+This is my attempt at building a cross-device reminder and task manager — heavily inspired by Apple Reminders — using AI-assisted coding (Claude, Cursor, etc.) as the primary development approach. I'm just a product designer and not a professional developer; this is a personal learning project.
+
+The goal: build something I actually use every day, while learning how modern web stacks fit together.
+
+---
+
+## Features
+
+- **Smart views** — Today, Scheduled, All, Flagged with live counts
+- **Multiple lists** — each with a custom color and icon
+- **Rich task rows** — priority levels (`!` `!!` `!!!`), flag, due date, overdue highlighting, subtasks, and notes
+- **Detail panel** — tap ⓘ on any task to edit date, time, list, flag, priority, repeat, and subtasks
+- **Edit mode** — bulk select tasks to Flag / Move / Complete / Delete
+- **Search** — instant filtering across all tasks
+- **Keyboard shortcuts** — `⌘N` new · `⌘F` search · `⌘D` dark mode · `⌘⇧C` show completed · `⌘E` edit mode · `?` help
+- **Mobile layout** — responsive below 700 px; opens to Today view with a bottom-sheet detail panel
+- **Dark mode** toggle
+- **Cross-device sync** via Supabase Realtime — same data on phone and laptop instantly
+- **Google sign-in** — one tap on Android and desktop
+
+---
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Frontend | React 18 + Vite 5 |
+| Backend / DB | Supabase (Postgres + Row-Level Security) |
+| Auth | Google OAuth via Supabase |
+| Hosting | Vercel (auto-deploy from GitHub) |
+| Styling | Inline styles + CSS variables (iOS system tokens) |
+
+---
+
+## Run locally
+
+You'll need Node 18+ and a Supabase project.
 
 ```bash
-node --version
+# Clone the repo
+git clone https://github.com/your-username/reminders.git
+cd reminders
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Fill in your Supabase URL and anon key
+
+# Start dev server
+npm run dev
+# → http://localhost:5173
 ```
 
-If you don't have Node, install the LTS build from https://nodejs.org.
+### Environment variables
 
-Then, from inside this `todo-app/` folder:
-
-```bash
-npm install        # one time — installs React, Vite, etc.
-npm run dev        # starts the dev server
 ```
-
-Vite will print a local URL (usually http://localhost:5173) and open it in your browser. Edits to any file under `src/` hot-reload instantly.
-
-To stop the server: `Ctrl+C` in the terminal.
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
 ---
 
-## What works right now
+## About this project / vibe coding
 
-- Sidebar with multiple lists (Inbox, Today, Work seeded by default)
-- Add a new list (input at the bottom of the sidebar)
-- Delete a list (hover over a list — × appears on the right)
-- Add a task to the current list, with an optional due date
-- Check tasks off / uncheck them
-- Edit a task's title inline (just click and type)
-- Delete a task (hover — × appears on the right)
-- Due-date display with friendly labels (Today / Tomorrow / Mon, etc.) and an "overdue" indicator in red
-- Counts of open tasks per list shown in the sidebar
+I built this primarily by describing what I wanted to claude and iterating from there — a workflow sometimes called *vibe coding*. Almost everything here, from the component structure to the Supabase schema, was written or shaped with AI help.
 
-## What's intentionally NOT here yet
+Things I learned along the way:
 
-- **No persistence.** Refresh the page and your tasks are gone. This comes with Supabase.
-- **No login / no cross-device sync.** Comes with Supabase.
-- **No reminders.** Comes later via Google Calendar integration.
-- **Styling is placeholder.** Will be replaced from the Figma file.
+- How Supabase Row-Level Security works (and why it matters)
+- How to wire up Google OAuth without pulling my hair out
+- How Supabase Realtime keeps data in sync across tabs and devices
+- How to think in React — state, props, lifting up, side effects
+- How Vercel auto-deploy from GitHub actually works in practice
+
+It's imperfect. There are probably better ways to do most things in here. But it works, I use it daily now, and i keep adding and removing feautres and bugs alike every other day, and ofcourse building it taught me more than any tutorial did.
 
 ---
 
-## File layout
+## Roadmap / ideas
 
-```
-todo-app/
-├── package.json          # deps + npm scripts
-├── vite.config.js        # dev-server config
-├── index.html            # HTML entry — Vite injects the bundle here
-├── .gitignore
-└── src/
-    ├── main.jsx          # React entry — mounts <App /> into #root
-    ├── App.jsx           # Top-level state (lists, tasks, active list)
-    ├── App.css           # Layout + component styles (placeholder)
-    ├── index.css         # Global resets and base typography
-    └── components/
-        ├── Sidebar.jsx       # Lists + add-list input
-        ├── AddTaskInput.jsx  # Title + due-date input row
-        ├── TaskList.jsx      # Wraps the list of TaskItem rows
-        └── TaskItem.jsx      # Single task row (checkbox / title / due / delete)
-```
-
-All state currently lives in `App.jsx`. When we add Supabase, this is where we swap `useState` calls for hooks that read from / write to the database.
+- [ ] Widgets (iOS home screen style)
+- [ ] Natural language input ("call mom tomorrow at 3pm")
+- [ ] Attachments / image notes
+- [ ] Shared lists (collaborative)
+- [ ] Notification reminders (push / email)
 
 ---
 
-## Next steps (planned)
+## Contributing
 
-1. ✅ Phase 1 — Local UI with in-memory state (this commit)
-2. ⏳ Apply Figma-based styling
-3. ⏳ Set up Supabase project + tables (`lists`, `tasks`)
-4. ⏳ Add Google sign-in
-5. ⏳ Replace in-memory state with Supabase reads/writes (cross-device sync)
-6. ⏳ Reminders via Google Calendar integration
-7. ⏳ PWA polish (install to home screen on Android, app icon)
-8. ⏳ Offline support
+This is a personal project, so I'm not actively seeking contributions — but if you find a bug or have a suggestion, feel free to open an issue, or just send me a hi on my socials. I'd love to hear from others learning the same way.
+
+---
